@@ -32,24 +32,11 @@
 </template>
 
 <script>
-const debounce = (time, fn) => {
-  let timer = null
-  return function () {
-    if (timer) clearTimeout(timer)
-
-    timer = setTimeout(() => {
-      fn.call(this, ...arguments)
-      timer = null
-    }, time)
-  }
-}
-
 export default {
   data() {
     return {
       worker: null,
       city: null,
-      last: null,
       results: [],
       time: 0,
       total: 0,
@@ -57,7 +44,7 @@ export default {
     }
   },
   watch: {
-    city: debounce(200, async function (val) {
+    async city(val) {
       if (!val.length) {
         this.results = []
         this.time = 0
@@ -65,20 +52,17 @@ export default {
         return
       }
 
-      if (val === this.last || !this.worker) return
-
       this.loading = true
       const response = await this.waitForMethod(this.worker, 'search', {
         pattern: val,
         numRecords: 10,
       })
 
-      this.loading = false
       this.results = response.results
       this.time = response.time
       this.total = response.total
-      this.last = val
-    }),
+      this.loading = false
+    },
   },
 
   mounted() {

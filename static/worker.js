@@ -32,7 +32,7 @@ async function search({ pattern, numRecords }) {
     eventData: {
       time: end,
       total: len,
-      results,
+      results: results.filter(({ rank }) => rank >= 0),
     },
   })
 }
