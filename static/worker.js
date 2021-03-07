@@ -6,8 +6,13 @@ let len = 0
 async function loadData(url) {
   const cities = await (await fetch(url)).json()
   const instance = self.Fuzer.getInstance()
+  const visited = new Set()
+
   for (const city of cities) {
+    if (visited.has(city.name)) continue
+
     instance.add(city.name)
+    visited.add(city.name)
   }
 
   len = cities.length
