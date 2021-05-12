@@ -32,6 +32,19 @@
 </template>
 
 <script>
+const debounce = function (time, func) {
+  let timer = null
+  return function () {
+    const args = arguments
+    if (timer) {
+      clearTimeout(timer)
+      timer = null
+    }
+
+    timer = setTimeout(() => func.apply(this, args), time)
+  }
+}
+
 export default {
   data() {
     return {
@@ -41,28 +54,32 @@ export default {
       time: 0,
       total: 0,
       loading: false,
+      searchQueue: [],
     }
   },
   watch: {
-    async city(val) {
-      if (!val.length) {
-        this.results = []
-        this.time = 0
-        this.total = 0
+    city: debounce(250, async function (val) {
+      this.searchQueue.push(val)
+      if (this.loading) {
         return
       }
 
-      this.loading = true
-      const response = await this.waitForMethod(this.worker, 'search', {
-        pattern: val,
-        numRecords: 10,
-      })
+      while (this.searchQueue.length) {
+        const idx = this.searchQueue.length
+        const response = await this.search(this.searchQueue.pop())
 
-      this.results = response.results
-      this.time = response.time
-      this.total = response.total
-      this.loading = false
-    },
+        // New query is being searched now
+        if (idx < this.searchQueue.length) {
+          continue
+        }
+
+        this.searchQueue = []
+        this.results = response.results
+        this.time = response.time
+        this.total = response.total
+        this.loading = false
+      }
+    }),
   },
 
   mounted() {
@@ -70,6 +87,26 @@ export default {
   },
 
   methods: {
+    search(val) {
+      if (!val.length) {
+        this.results = []
+        this.time = 0
+        this.total = 0
+        return
+      }
+
+      if (this.loading) {
+        this.searchQueue.push(val)
+        return
+      }
+
+      this.loading = true
+      return this.waitForMethod(this.worker, 'search', {
+        pattern: val,
+        numRecords: 10,
+      })
+    },
+
     highlight(word, indexes) {
       let result = ''
       let ptr = 0
